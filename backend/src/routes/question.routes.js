@@ -17,8 +17,4 @@ router.get('/:id', verifyJWT, getQuestionById);
 router.put('/:id', verifyJWT, updateQuestion);
 router.delete('/:id', verifyJWT, deleteQuestion);
 
-// Additional routes for question management
-router.get('/by-category/:category', verifyJWT, getQuestionsByCategory);
-router.get('/by-tag/:tag', verifyJWT, getQuestionsByTag);
-
 export default router;

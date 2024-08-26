@@ -17,10 +17,4 @@ router.get('/:id', verifyJWT, getInterviewById);
 router.put('/:id', verifyJWT, updateInterview);
 router.delete('/:id', verifyJWT, deleteInterview);
 
-// Additional routes for interview management
-router.get('/by-candidate/:candidateId', verifyJWT, getInterviewsByCandidate);
-router.get('/by-position/:positionId', verifyJWT, getInterviewsByPosition);
-router.get('/upcoming', verifyJWT, getUpcomingInterviews);
-router.get('/past', verifyJWT, getPastInterviews);
-
 export default router;
