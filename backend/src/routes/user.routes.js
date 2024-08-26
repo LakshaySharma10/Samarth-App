@@ -20,11 +20,11 @@ router.route('/login').post(loginUser);
 // Routes requiring authentication
 router.route('/logout').post(verifyJWT, logoutUser);
 router.route('/refresh-token').post(refreshAccessToken);
-router.route('/me').get(verifyJWT, getCurrentUser);
-router.route('/change-password').put(verifyJWT, changeCurrentPassword);
-router.route('/update-details').put(verifyJWT, updateAccountDetails);
+router.route('/me').get(verifyJWT, getCurrentUser); 
+// router.route('/change-password').put(verifyJWT, changeCurrentPassword);  //dont integrate this for now
+// router.route('/update-details').put(verifyJWT, updateAccountDetails);    //dont integrate this for now
 
 // Admin routes (e.g., to delete a user)
-router.route('/:id').delete(verifyJWT, deleteUser);
+// router.route('/:id').delete(verifyJWT, deleteUser); //dont integrate this for now
 
 export default router;

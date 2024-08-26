@@ -15,8 +15,18 @@ app.use(cookieParser());
 
 // Routes import
 import userRouter from './routes/user.routes.js';
+import interviewRouter from './routes/interview.routes.js';
+import questionRouter from './routes/question.routes.js';
+import scoreRouter from './routes/score.routes.js';
+import vacancyRouter from './routes/vacancy.routes.js';
+import chatRouter from './routes/chat.routes.js';
 
 // Routes declaration
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/interviews', interviewRouter);
+app.use('/api/v1/questions', questionRouter);
+app.use('/api/v1/scores', scoreRouter);
+app.use('/api/v1/vacancies', vacancyRouter);
+app.use('/api/v1/chats', chatRouter);
 
 export { app };
