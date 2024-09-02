@@ -21,7 +21,8 @@ const ChatInterviewPage = () => {
   const [loading, setLoading] = useState(false);
   const [resume, setResume] = useState(null);
   const [uploadError, setUploadError] = useState('');
-  const [startInterview, setStartInterview] = useState(false); // New state for Start button
+  const [startInterview, setStartInterview] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);  // Track the number of user messages
 
   const fadeInProps = useSpring({ opacity: 1, from: { opacity: 0 }, config: { duration: 1000 } });
 
@@ -29,7 +30,6 @@ const ChatInterviewPage = () => {
   const handleResumeUpload = async (event) => {
     const file = event.target.files[0];
 
-    // Check if the file is a PDF
     if (file && file.type === 'application/pdf') {
       setUploadError('');
       setResume(file);
@@ -46,14 +46,13 @@ const ChatInterviewPage = () => {
         if (response.ok) {
           setMessages(prevMessages => [...prevMessages, { text: data.message, type: 'system' }]);
 
-          // Hit the /start endpoint after successful upload
           const startResponse = await fetch('http://127.0.0.1:5000/start', {
             method: 'GET',
           });
           const startData = await startResponse.json();
           if (startResponse.ok) {
             setMessages(prevMessages => [...prevMessages, { text: startData.response, type: 'ai' }]);
-            setStartInterview(true); // Enable Start button
+            setStartInterview(true);
           } else {
             console.error('Failed to fetch start message.');
             setUploadError('Failed to fetch start message.');
@@ -70,7 +69,6 @@ const ChatInterviewPage = () => {
     }
   };
 
-  // Fetch LLM response from API
   const fetchLLMResponse = async (message) => {
     try {
       const response = await fetch('http://127.0.0.1:5000/interview', {
@@ -93,19 +91,14 @@ const ChatInterviewPage = () => {
 
   const simulateAIResponse = useCallback(async (message) => {
     setLoading(true);
-
-    // Fetch AI response
     const aiText = await fetchLLMResponse(message);
 
-    // Simulate typewriter effect and update messages
     typewriterEffect(aiText, 50, (updatedMessage) => {
       setMessages(prevMessages => {
         const newMessages = [...prevMessages];
-        // Remove the last AI message if it's still being typed
         if (newMessages.length > 0 && newMessages[newMessages.length - 1].type === 'ai' && newMessages[newMessages.length - 1].text !== aiText) {
           newMessages.pop();
         }
-        // Add the updated AI message
         newMessages.push({ text: updatedMessage, type: 'ai' });
         return newMessages;
       });
@@ -115,16 +108,17 @@ const ChatInterviewPage = () => {
   }, []);
 
   const handleSend = () => {
-    if (input.trim() === '') return;
+    if (input.trim() === '' || messageCount >= 10) return; // Prevent sending more than 10 messages
 
-    // Add the user message to the messages
     setMessages(prevMessages => [...prevMessages, { text: input, type: 'user' }]);
+    simulateAIResponse(input);
     setInput('');
+    setMessageCount(prevCount => prevCount + 1); // Increment message count
   };
 
   const handleStartInterview = async () => {
     try {
-      const initialMessage = "Let's start the interview."; // Define an initial message
+      const initialMessage = "Let's start the interview.";
       const response = await fetch('http://127.0.0.1:5000/interview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,7 +127,7 @@ const ChatInterviewPage = () => {
       const data = await response.json();
       if (response.ok) {
         setMessages(prevMessages => [...prevMessages, { text: data.response, type: 'ai' }]);
-        setStartInterview(false); // Disable Start button after starting the interview
+        setStartInterview(false);
       } else {
         console.error('Failed to start interview.');
         if (data.error) {
@@ -199,13 +193,13 @@ const ChatInterviewPage = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               className="flex-1 p-2 bg-[#0b5428] text-white rounded-lg border border-[#0b5428] outline-none"
-              placeholder="Type your message..."
-              disabled={loading}
+              placeholder={messageCount < 10 ? "Type your message..." : "Interview complete. Analysis will be generated."} // Update placeholder text
+              disabled={loading || messageCount >= 10}  // Disable input after 10 messages
             />
             <button
               onClick={handleSend}
               className="ml-4 px-6 py-2 bg-[#0b5428] text-white rounded-lg border border-[#0b5428] transition-transform transform hover:scale-105"
-              disabled={loading}
+              disabled={loading || messageCount >= 10} // Disable button after 10 messages
             >
               Send
             </button>

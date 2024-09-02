@@ -27,12 +27,10 @@ conversation = ConversationChain(llm=llm, memory=memory, verbose=True)
 
 # Global variable to store resume content
 resume_content = ""
-user_message_count = 0  # Counter for user messages
 
 @app.route('/upload', methods=['POST'])
 def upload_resume():
-    global resume_content, user_message_count
-    user_message_count = 0  # Reset counter on new upload
+    global resume_content
     if 'resume' not in request.files:
         return jsonify({"error": "No file part"}), 400
     file = request.files['resume']
@@ -57,7 +55,7 @@ def start():
 
 @app.route('/interview', methods=['POST'])
 def interview():
-    global resume_content, user_message_count
+    global resume_content
     if not request.is_json:
         return jsonify({"error": "Invalid Content-Type. Expected application/json."}), 415
     data = request.get_json()
@@ -68,8 +66,6 @@ def interview():
     if not resume_content:
         return jsonify({"error": "Resume not found. Please upload a resume first."}), 400
     
-    user_message_count += 1  # Increment the message count
-
     if not memory.chat_memory:
         # First message in the interview
         prompt = f"""You are an expert interviewer conducting a job interview. The candidate has uploaded their resume, and you have the following information:
@@ -82,18 +78,22 @@ The candidate's first message is: '{user_input}'
 
 Provide your response and the first interview question."""
     else:
-        if user_message_count < 10:
-            # Continue the interview
-            prompt = f"""Continue the professional job interview. Ask relevant follow-up questions based on the candidate's previous responses and their resume. Ensure the conversation flows naturally and mimics a real-life interview environment.
+        # Continue the interview
+        prompt = f"""Continue the professional job interview. Ask relevant follow-up questions based on the candidate's previous responses and their resume. Ensure the conversation flows naturally and mimics a real-life interview environment.
 
 Resume content: {resume_content}
 
 The candidate's latest response is: '{user_input}'
 
 Provide your next question or response."""
-        else:
-            # Generate analysis after 10 messages
-            prompt = f"""The interview is now complete after 10 responses from the candidate. Please provide a comprehensive analysis based on the entire interview conversation, including the following:
+    
+    response = conversation.predict(input=prompt)
+    return jsonify({"response": response})
+
+
+@app.route('/analysis', methods=['GET'])
+def analysis():
+    prompt = """Based on the entire interview conversation, provide a comprehensive analysis of the candidate. Include the following:
 
 1. Overall impression
 2. Strengths demonstrated
@@ -103,14 +103,10 @@ Provide your next question or response."""
 6. Cultural fit
 7. Recommendations for the candidate
 
-Additionally, provide a rating out of 10 for each of the above categories and calculate an overall score out of 100.
+Provide a detailed yet concise analysis, offering constructive feedback and actionable insights."""
 
-Candidate's resume content: {resume_content}
-Candidate's conversation history: {memory.buffer}
-"""
-    
-    response = conversation.predict(input=prompt)
-    return jsonify({"response": response})
+    analysis_response = conversation.predict(input=prompt)
+    return jsonify({"analysis": analysis_response})
 
 if __name__ == '__main__':
     app.run(debug=True)
