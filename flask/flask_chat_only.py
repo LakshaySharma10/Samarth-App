@@ -3,11 +3,14 @@ import os
 import PyPDF2
 from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
-from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import ConversationChain
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+# Initialize CORS with allowed origins
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Load environment variables
 load_dotenv()
@@ -63,7 +66,6 @@ Based on this resume, conduct a professional interview. Start by briefly introdu
 The candidate's first message is: '{user_input}'
 
 Provide your response and the first interview question."""
-
     else:
         # Continue the interview
         prompt = f"""Continue the professional job interview. Ask relevant follow-up questions based on the candidate's previous responses and their resume. Ensure the conversation flows naturally and mimics a real-life interview environment.
@@ -91,6 +93,17 @@ Provide a detailed yet concise analysis, offering constructive feedback and acti
 
     analysis_response = conversation.predict(input=prompt)
     return jsonify({"analysis": analysis_response})
+
+# Ensure CORS headers are present on all responses
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE')
+    return response
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

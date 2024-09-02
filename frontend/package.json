@@ -14,6 +14,7 @@
     "axios": "^1.7.3",
     "chart.js": "^4.4.3",
     "gsap": "^3.12.5",
+    "pdfjs-dist": "^4.6.82",
     "qrcode-decoder": "^0.3.4",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",

@@ -7,7 +7,7 @@ const vacancies = [
   { value: 'data_scientist', label: 'Data Scientist' },
   { value: 'project_manager', label: 'Project Manager' },
   { value: 'web_developer', label: 'Web developer' }
-  // Add more vacancies as needed
+  
 ];
 
 const InterviewForm = () => {
