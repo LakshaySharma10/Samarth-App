@@ -19,7 +19,6 @@ const ChatInterviewPage = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [aiMessage, setAiMessage] = useState('');
   const [resume, setResume] = useState(null);
   const [uploadError, setUploadError] = useState('');
   const [startInterview, setStartInterview] = useState(false); // New state for Start button
@@ -57,6 +56,7 @@ const ChatInterviewPage = () => {
             setStartInterview(true); // Enable Start button
           } else {
             console.error('Failed to fetch start message.');
+            setUploadError('Failed to fetch start message.');
           }
         } else {
           setUploadError(data.error || 'Failed to upload resume.');
@@ -79,13 +79,17 @@ const ChatInterviewPage = () => {
         body: JSON.stringify({ message }),
       });
       const data = await response.json();
-      return data.response || 'Sorry, I didn\'t understand that.';
+      if (response.ok) {
+        return data.response || 'Sorry, I didn\'t understand that.';
+      } else {
+        console.error('Server Error:', data.error);
+        return 'Sorry, there was an error.';
+      }
     } catch (error) {
       console.error('Error fetching response:', error);
       return 'Sorry, there was an error.';
     }
   };
-  
 
   const simulateAIResponse = useCallback(async (message) => {
     setLoading(true);
@@ -93,20 +97,22 @@ const ChatInterviewPage = () => {
     // Fetch AI response
     const aiText = await fetchLLMResponse(message);
 
-    // Simulate typewriter effect
+    // Simulate typewriter effect and update messages
     typewriterEffect(aiText, 50, (updatedMessage) => {
-      setAiMessage(updatedMessage);
+      setMessages(prevMessages => {
+        const newMessages = [...prevMessages];
+        // Remove the last AI message if it's still being typed
+        if (newMessages.length > 0 && newMessages[newMessages.length - 1].type === 'ai' && newMessages[newMessages.length - 1].text !== aiText) {
+          newMessages.pop();
+        }
+        // Add the updated AI message
+        newMessages.push({ text: updatedMessage, type: 'ai' });
+        return newMessages;
+      });
     });
 
-    // Add the AI response to messages after the effect is done
-    setMessages(prevMessages => [
-      ...prevMessages.slice(0, -1), // Remove last message to avoid duplication
-      { text: message, type: 'user' },
-      { text: aiMessage, type: 'ai' }
-    ]);
-
     setLoading(false);
-  }, [aiMessage]);
+  }, []);
 
   const handleSend = () => {
     if (input.trim() === '') return;
@@ -118,8 +124,11 @@ const ChatInterviewPage = () => {
 
   const handleStartInterview = async () => {
     try {
+      const initialMessage = "Let's start the interview."; // Define an initial message
       const response = await fetch('http://127.0.0.1:5000/interview', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: initialMessage }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -127,9 +136,13 @@ const ChatInterviewPage = () => {
         setStartInterview(false); // Disable Start button after starting the interview
       } else {
         console.error('Failed to start interview.');
+        if (data.error) {
+          setUploadError(data.error);
+        }
       }
     } catch (error) {
       console.error('Error starting interview:', error);
+      setUploadError('An error occurred while starting the interview.');
     }
   };
 
@@ -138,16 +151,6 @@ const ChatInterviewPage = () => {
       simulateAIResponse(messages[messages.length - 1].text);
     }
   }, [messages, simulateAIResponse]);
-
-  useEffect(() => {
-    if (aiMessage && messages.length > 0 && messages[messages.length - 1].type === 'user') {
-      setMessages(prevMessages => [
-        ...prevMessages.slice(0, -1), // Remove last user message to avoid duplication
-        { text: prevMessages[prevMessages.length - 1].text, type: 'user' },
-        { text: aiMessage, type: 'ai' }
-      ]);
-    }
-  }, [aiMessage]);
 
   return (
     <main className="w-full bg-black text-white h-screen flex flex-col">
@@ -160,7 +163,7 @@ const ChatInterviewPage = () => {
                 {messages.map((msg, index) => (
                   <div
                     key={index}
-                    className={`p-4 rounded-lg ${msg.type === 'user' ? 'bg-[#0b5428]' : 'bg-[#020d02]'}`}
+                    className={`p-4 rounded-lg ${msg.type === 'user' ? 'bg-[#0b5428]' : msg.type === 'system' ? 'bg-gray-700' : 'bg-[#020d02]'}`}
                   >
                     <p className="text-lg">{msg.text}</p>
                   </div>
@@ -197,10 +200,12 @@ const ChatInterviewPage = () => {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               className="flex-1 p-2 bg-[#0b5428] text-white rounded-lg border border-[#0b5428] outline-none"
               placeholder="Type your message..."
+              disabled={loading}
             />
             <button
               onClick={handleSend}
               className="ml-4 px-6 py-2 bg-[#0b5428] text-white rounded-lg border border-[#0b5428] transition-transform transform hover:scale-105"
+              disabled={loading}
             >
               Send
             </button>

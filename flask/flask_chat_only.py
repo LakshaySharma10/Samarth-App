@@ -10,7 +10,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 
 # Initialize CORS with allowed origins
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 # Load environment variables
 load_dotenv()
@@ -53,7 +53,12 @@ def start():
 @app.route('/interview', methods=['POST'])
 def interview():
     global resume_content
-    user_input = request.json['message']
+    if not request.is_json:
+        return jsonify({"error": "Invalid Content-Type. Expected application/json."}), 415
+    data = request.get_json()
+    if 'message' not in data:
+        return jsonify({"error": "Missing 'message' field."}), 400
+    user_input = data['message']
     
     if not memory.chat_memory:
         # First message in the interview
@@ -73,7 +78,7 @@ Provide your response and the first interview question."""
 The candidate's latest response is: '{user_input}'
 
 Provide your next question or response."""
-
+    
     response = conversation.predict(input=prompt)
     return jsonify({"response": response})
 
@@ -93,17 +98,6 @@ Provide a detailed yet concise analysis, offering constructive feedback and acti
 
     analysis_response = conversation.predict(input=prompt)
     return jsonify({"analysis": analysis_response})
-
-# Ensure CORS headers are present on all responses
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE')
-    return response
-
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
